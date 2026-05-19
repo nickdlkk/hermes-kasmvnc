@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenClaw Gateway (managed by supervisor)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/bin/true
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

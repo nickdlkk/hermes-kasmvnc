@@ -1068,9 +1068,10 @@ install_cmd() {
     upsert_env_line .env LANG "zh_CN.UTF-8"
     upsert_env_line .env LANGUAGE "zh_CN:zh"
     upsert_env_line .env LC_ALL "zh_CN.UTF-8"
-    if [ "${NO_DIND:-0}" = "1" ]; then
-      upsert_env_line .env NO_DIND "1"
-    fi
+    upsert_env_line .env NO_DIND "1"
+    upsert_env_line .env API_SERVER_KEY "$(openssl rand -hex 32)"
+    upsert_env_line .env API_SERVER_HOST "0.0.0.0"
+    upsert_env_line .env GATEWAY_ALLOW_ALL_USERS "true"
     if [ -n "$HTTP_PROXY_URL" ]; then
       upsert_env_line .env HERMES_HTTP_PROXY "$HTTP_PROXY_URL"
     fi

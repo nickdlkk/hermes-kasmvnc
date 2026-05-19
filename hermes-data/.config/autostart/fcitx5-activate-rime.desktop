@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Activate Fcitx5 Rime
+Exec=bash -c "for i in {1..120}; do if pgrep -x xfdesktop >/dev/null 2>&1; then break; fi; sleep 1; done; sleep 5; fcitx5-remote -o; sleep 0.5; fcitx5-remote -s rime; fcitx5-remote -o"
+Terminal=false
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true

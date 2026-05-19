@@ -220,6 +220,9 @@ while true; do
   if [ -n "$ver" ]; then export HERMES_VERSION="$ver"; fi
 
   set +e
+  # Auto-start Hermes Dashboard in background
+  nohup hermes dashboard --port 9119 --no-open >/tmp/dashboard.log 2>&1 &
+
   if command -v hermes >/dev/null 2>&1; then
     hermes gateway run >>/tmp/hermes-gateway.log 2>&1
   else

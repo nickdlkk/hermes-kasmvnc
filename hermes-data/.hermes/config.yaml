@@ -1,0 +1,7 @@
+agents:
+  defaults:
+    workspace: /home/node/.hermes/workspace
+gateway:
+  controlUi:
+    dangerouslyAllowHostHeaderOriginFallback: true
+  bind: lan

@@ -1,0 +1,34 @@
+2026-05-19 15:30:43,293 INFO hermes_cli.plugins: Plugin 'browser-browser-use' registered browser provider: browser-use
+2026-05-19 15:30:43,301 INFO hermes_cli.plugins: Plugin 'browser-browserbase' registered browser provider: browserbase
+2026-05-19 15:30:43,308 INFO hermes_cli.plugins: Plugin 'browser-firecrawl' registered browser provider: firecrawl
+2026-05-19 15:30:43,324 INFO hermes_cli.plugins: Plugin 'openai' registered image_gen provider: openai
+2026-05-19 15:30:43,352 INFO hermes_cli.plugins: Plugin 'openai-codex' registered image_gen provider: openai-codex
+2026-05-19 15:30:43,385 INFO hermes_cli.plugins: Plugin 'xai' registered image_gen provider: xai
+2026-05-19 15:30:43,808 INFO hermes_cli.plugins: Plugin 'fal' registered video_gen provider: fal
+2026-05-19 15:30:43,819 INFO hermes_cli.plugins: Plugin 'xai' registered video_gen provider: xai
+2026-05-19 15:30:43,836 INFO hermes_cli.plugins: Plugin 'web-brave-free' registered web provider: brave-free
+2026-05-19 15:30:43,843 INFO hermes_cli.plugins: Plugin 'web-ddgs' registered web provider: ddgs
+2026-05-19 15:30:43,851 INFO hermes_cli.plugins: Plugin 'web-exa' registered web provider: exa
+2026-05-19 15:30:43,865 INFO hermes_cli.plugins: Plugin 'web-firecrawl' registered web provider: firecrawl
+2026-05-19 15:30:43,874 INFO hermes_cli.plugins: Plugin 'web-parallel' registered web provider: parallel
+2026-05-19 15:30:43,882 INFO hermes_cli.plugins: Plugin 'web-searxng' registered web provider: searxng
+2026-05-19 15:30:43,890 INFO hermes_cli.plugins: Plugin 'web-tavily' registered web provider: tavily
+2026-05-19 15:30:44,649 INFO hermes_cli.plugins: Plugin discovery complete: 25 found, 21 enabled
+2026-05-19 15:30:46,788 INFO gateway.memory_monitor: [MEMORY] baseline rss=117MB gc=(239, 6, 2) threads=1 uptime=0s
+2026-05-19 15:30:46,789 INFO gateway.memory_monitor: [MEMORY] Periodic memory monitoring started (interval: 300s)
+2026-05-19 15:30:47,109 INFO tools.tirith_security: tirith not found — downloading latest release for x86_64-unknown-linux-gnu...
+2026-05-19 15:30:47,143 INFO gateway.run: Starting Hermes Gateway...
+2026-05-19 15:30:47,144 INFO gateway.run: Session storage: /home/node/.hermes/sessions
+2026-05-19 15:30:47,148 INFO gateway.run: Agent budget: max_iterations=90 (agent.max_turns from config.yaml, or HERMES_MAX_ITERATIONS from .env, or default 90)
+2026-05-19 15:30:47,149 INFO gateway.run: Secret redaction: ENABLED (tool output, logs, and chat responses are scrubbed before delivery)
+2026-05-19 15:30:47,163 WARNING gateway.run: No user allowlists configured. All unauthorized users will be denied. Set GATEWAY_ALLOW_ALL_USERS=true in ~/.hermes/.env to allow open access, or configure platform allowlists (e.g., TELEGRAM_ALLOWED_USERS=your_id).
+2026-05-19 15:30:47,168 WARNING gateway.run: No messaging platforms enabled.
+2026-05-19 15:30:47,169 INFO gateway.run: Gateway will continue running for cron job execution.
+2026-05-19 15:30:47,186 INFO gateway.run: Channel directory built: 0 target(s)
+2026-05-19 15:30:47,187 INFO gateway.run: Press Ctrl+C to stop
+2026-05-19 15:30:47,326 INFO gateway.run: Cron ticker started (interval=60s)
+2026-05-19 15:30:52,195 INFO gateway.run: kanban dispatcher: embedded in gateway (interval=60.0s)
+2026-05-19 15:30:54,679 INFO tools.tirith_security: cosign not on PATH — installing tirith with SHA-256 verification only (install cosign for full supply chain verification)
+2026-05-19 15:30:55,075 INFO tools.tirith_security: tirith installed to /home/node/.hermes/bin/tirith (SHA-256 only)
+2026-05-19 15:35:46,790 INFO gateway.memory_monitor: [MEMORY] rss=122MB gc=(70, 1, 5) threads=5 uptime=300s
+2026-05-19 15:40:46,791 INFO gateway.memory_monitor: [MEMORY] rss=122MB gc=(150, 1, 5) threads=5 uptime=600s

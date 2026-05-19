@@ -1,0 +1,4 @@
+[Default Applications]
+x-scheme-handler/http=chromium-kasm.desktop
+x-scheme-handler/https=chromium-kasm.desktop
+text/html=chromium-kasm.desktop

@@ -1,0 +1,50 @@
+services:
+  hermes-kasmvnc:
+    build:
+      context: .
+      dockerfile: Dockerfile.kasmvnc
+      args:
+        KASMVNC_VERSION: ${HERMES_KASMVNC_VERSION:-1.3.0}
+        HTTP_PROXY: ${HERMES_HTTP_PROXY:-}
+        HTTPS_PROXY: ${HERMES_HTTP_PROXY:-}
+        OPENC_CACHE_BUST: ${OPENC_CACHE_BUST:-1}
+    image: ${HERMES_KASMVNC_IMAGE:-hermes:kasmvnc}
+    command:
+      [
+        "hermes", "gateway", "run",
+      ]
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      HERMES_GATEWAY_TOKEN: ${HERMES_GATEWAY_TOKEN}
+      HERMES_KASMVNC_USER: ${HERMES_KASMVNC_USER:-node}
+      HERMES_KASMVNC_PASSWORD: ${HERMES_KASMVNC_PASSWORD:-}
+      HERMES_KASMVNC_RESOLUTION: ${HERMES_KASMVNC_RESOLUTION:-1920x1080}
+      HERMES_KASMVNC_DEPTH: ${HERMES_KASMVNC_DEPTH:-24}
+      TZ: ${TZ:-Asia/Shanghai}
+      LANG: zh_CN.UTF-8
+      LANGUAGE: zh_CN:zh
+      LC_ALL: zh_CN.UTF-8
+      HTTP_PROXY: ${HERMES_HTTP_PROXY:-}
+      HTTPS_PROXY: ${HERMES_HTTP_PROXY:-}
+      http_proxy: ${HERMES_HTTP_PROXY:-}
+      https_proxy: ${HERMES_HTTP_PROXY:-}
+      NO_PROXY: ${HERMES_NO_PROXY:-localhost,127.0.0.1}
+      no_proxy: ${HERMES_NO_PROXY:-localhost,127.0.0.1}
+    volumes:
+      - ${HERMES_DATA_DIR:-./hermes-data}:/home/node
+    ports:
+      - "${HERMES_GATEWAY_PORT:-18642}:8642"
+      - "${HERMES_GATEWAY_BRIDGE_PORT:-18643}:8643"
+      - "${HERMES_KASMVNC_HTTPS_PORT:-8443}:8444"
+    shm_size: '2gb'
+    privileged: true
+    init: true
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

@@ -1,0 +1,1 @@
+{"pid":408,"kind":"hermes-gateway","argv":["/usr/local/lib/hermes-agent/venv/bin/hermes","gateway","run"],"start_time":57971537,"gateway_state":"running","exit_reason":null,"restart_requested":false,"active_agents":0,"platforms":{},"updated_at":"2026-05-19T07:30:47.171656+00:00"}

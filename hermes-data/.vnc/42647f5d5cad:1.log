@@ -1,0 +1,95 @@
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set AcceptPointerEvents(Bool) to 1(1)
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set BlacklistThreshold(Int) to 5
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set DynamicQualityMax(Int) to 8
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set DLP_ClipAcceptMax(Int) to 0
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set DLP_Log(String) to off
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set RectThreads(Int) to 0
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set MaxDisconnectionTime(Int) to 0
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set interface(String) to 0.0.0.0
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set FrameRate(Int) to 60
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set sslOnly(Bool) to 1(1)
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set ClientWaitTimeMillis(Int) to 30000
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set rfbport(Int) to 5901
+ 2026-05-19 15:30:39,976 [DEBUG] Config: set PasswordFile(String) to /home/node/.vnc/passwd
+_XSERVTransmkdir: ERROR: euid != 0,directory /tmp/.X11-unix will not be created.
+
+Xvnc KasmVNC 1.3.0.001ff1aa47cd6a2803c47c1b9ca572352681504a - built Feb  9 2024 18:50:46
+Copyright (C) 1999-2018 KasmVNC Team and many others (see README.me)
+See http://kasmweb.com for information on KasmVNC.
+Underlying X server release 12010000, The X.Org Foundation
+
+ 2026-05-19 15:30:39,977 [DEBUG] vncext: Adding DLP binary mime type text/html
+ 2026-05-19 15:30:39,977 [DEBUG] vncext: Adding DLP binary mime type image/png
+ 2026-05-19 15:30:39,977 [DEBUG] vncext: Total 2 binary mime types
+ 2026-05-19 15:30:39,978 [INFO] ICE: Using public IP 127.0.0.1 from args
+ 2026-05-19 15:30:39,978 [INFO] vncext: VNC extension running!
+ 2026-05-19 15:30:39,978 [DEBUG] Config: set immutable AllowOverride
+ 2026-05-19 15:30:39,979 [INFO] vncext: Listening for websocket connections on 0.0.0.0 interface(s), port 8444
+ 2026-05-19 15:30:39,979 [DEBUG] VNCServerST: creating single-threaded server 42647f5d5cad:1 (node)
+ 2026-05-19 15:30:39,979 [INFO] VNCServerST: CPU capability: SSE2 yes, AVX512f no
+ 2026-05-19 15:30:39,979 [INFO] vncext: created VNC server for screen 0
+ 2026-05-19 15:30:40,037 [INFO] Input: Mouse horizonatl scroll factor: 50.000000
+ 2026-05-19 15:30:40,037 [INFO] Input: Mouse vertical scroll factor: 50.000000
+ 2026-05-19 15:30:40,055 [DEBUG] WebUdp: UDP listening on port 8444
+Running /home/node/.vnc/xstartup
++ exec xfce4-session
+ 2026-05-19 15:30:40,119 [DEBUG] Selection: Selection owner change for _DBUS_SESSION_BUS_SELECTION_node_309d2bbeb6ca50b003c45cb16a0c0fc5
+
+(xfce4-session:342): dbind-WARNING **: 15:30:40.220: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+_IceTransmkdir: ERROR: euid != 0,directory /tmp/.ICE-unix will not be created.
+/usr/bin/iceauth:  creating new authority file /tmp/xdg-runtime/ICEauthority
+gpg-agent[386]: 目录‘/home/node/.gnupg’已创建
+gpg-agent[386]: 目录‘/home/node/.gnupg/private-keys-v1.d’已创建
+gpg-agent[387]: gpg-agent (GnuPG) 2.2.40 started
+
+(xfwm4:388): dbind-WARNING **: 15:30:40.325: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+ 2026-05-19 15:30:40,460 [DEBUG] Selection: Selection owner change for WM_S0
+ 2026-05-19 15:30:40,820 [DEBUG] Selection: Selection owner change for _NET_WM_CM_S0
+
+(xfwm4:388): xfwm4-WARNING **: 15:30:43.064: Another compositing manager is running on screen 0
+
+(xfsettingsd:409): dbind-WARNING **: 15:30:43.120: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+ 2026-05-19 15:30:43,132 [DEBUG] Selection: Selection owner change for _XSETTINGS_S0
+
+(xfsettingsd:409): libupower-glib-WARNING **: 15:30:43.137: Couldn't connect to proxy: 无法连接：没有那个文件或目录
+ 2026-05-19 15:30:43,280 [DEBUG] Selection: Selection owner change for CLIPBOARD_MANAGER
+
+(xfce4-panel:412): dbind-WARNING **: 15:30:43.315: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(migrate:417): dbind-WARNING **: 15:30:43.371: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(Thunar:416): dbind-WARNING **: 15:30:43.392: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(xfdesktop:424): dbind-WARNING **: 15:30:43.474: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+ 2026-05-19 15:30:43,644 [DEBUG] Selection: Selection owner change for XFDESKTOP_SELECTION_0
+ 2026-05-19 15:30:43,644 [DEBUG] Selection: Selection owner change for _NET_DESKTOP_MANAGER_S0
+
+** (xfdesktop:424): WARNING **: 15:30:43.651: Thumbnailer failed calling GetFlavors
+
+(xfsettingsd:436): dbind-WARNING **: 15:30:43.680: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+** (xfdesktop:424): WARNING **: 15:30:43.807: Failed to get system bus: 无法连接：没有那个文件或目录
+ 2026-05-19 15:30:43,851 [DEBUG] Selection: Selection owner change for _NET_DESKTOP_LAYOUT_S0
+xfce4-panel-Message: 15:30:43.922: Plugin "(null)-7" was not found and has been removed from the configuration
+xfce4-panel-Message: 15:30:43.928: Plugin "power-manager-plugin-9" was not found and has been removed from the configuration
+xfce4-panel-Message: 15:30:43.929: Plugin "notification-plugin-10" was not found and has been removed from the configuration
+libclock-Message: 15:30:43.963: could not get proxy for org.freedesktop.login1
+
+(xfce4-panel:412): libclock-WARNING **: 15:30:43.963: could not instantiate a sleep monitor
+
+(wrapper-2.0:453): dbind-WARNING **: 15:30:43.972: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:454): dbind-WARNING **: 15:30:43.978: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+(wrapper-2.0:459): dbind-WARNING **: 15:30:44.129: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+ 2026-05-19 15:30:44,616 [DEBUG] Selection: Selection owner change for _NET_SYSTEM_TRAY_S0
+
+(wrapper-2.0:454): libnotify-WARNING **: 15:30:44.631: Failed to connect to proxy
+
+(xfce4-session:342): xfce4-session-WARNING **: 15:30:44.655: failed to run script: 执行子进程“/usr/bin/pm-is-supported”失败（没有那个文件或目录）
+
+(xfce4-session:342): xfce4-session-WARNING **: 15:30:44.658: failed to run script: 执行子进程“/usr/bin/pm-is-supported”失败（没有那个文件或目录）
+
+(xfce4-session:342): xfce4-session-WARNING **: 15:30:44.662: failed to run script: 执行子进程“/usr/bin/pm-is-supported”失败（没有那个文件或目录）
+ 2026-05-19 15:30:48,664 [DEBUG] Selection: Selection owner change for _FCITX_SERVER
+ 2026-05-19 15:30:48,708 [DEBUG] Selection: Selection owner change for @server=fcitx

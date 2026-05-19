@@ -1,0 +1,236 @@
+FROM node:22-bookworm
+
+USER root
+
+# 移除 dpkg 排除规则，确保翻译文件（locale）被完整安装，支持中文界面
+RUN rm -f /etc/dpkg/dpkg.cfg.d/docker && rm -f /etc/apt/apt.conf.d/docker-clean
+
+# 将 apt 源替换为清华镜像，加速国内下载
+RUN cp -a /etc/apt/sources.list.d /etc/apt/sources.list.d.bak 2>/dev/null || true \
+ && cp /etc/apt/sources.list /etc/apt/sources.list.bak 2>/dev/null || true \
+ && sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true \
+ && sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true \
+ && sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list 2>/dev/null || true \
+ && sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list 2>/dev/null || true
+
+# 安装 git 和 ssh 客户端（部分 npm 包的生命周期脚本和 git 依赖需要）
+RUN apt-get update && apt-get install -y --no-install-recommends git openssh-client && rm -rf /var/lib/apt/lists/* \
+ || (rm -rf /etc/apt/sources.list.d && cp -a /etc/apt/sources.list.d.bak /etc/apt/sources.list.d && cp /etc/apt/sources.list.bak /etc/apt/sources.list 2>/dev/null; \
+     apt-get update && apt-get install -y --no-install-recommends git openssh-client && rm -rf /var/lib/apt/lists/*)
+
+# 接收构建时的代理参数
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+
+# 通过 npm 全局安装 OpenClaw
+# 配置 npm 使用淘宝镜像源，强制 git 使用 HTTPS 协议
+ARG OPENC_CACHE_BUST=1
+RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
+ && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
+ && git config --global url."https://".insteadOf "git://" \
+ && (npm config set registry https://registry.npmmirror.com \
+    || npm config set registry https://registry.npmjs.org) \
+ && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
+
+# 配置时区和语言环境（可通过构建参数覆盖）
+ARG TZ=Asia/Shanghai
+ARG LANG=zh_CN.UTF-8
+# 将 KasmVNC 加入 PATH，设置中文环境变量和输入法框架
+ENV PATH="/opt/KasmVNC/bin:${PATH}"
+ENV TZ=${TZ}
+ENV LANG=${LANG}
+ENV LANGUAGE=zh_CN:zh
+ENV LC_ALL=${LANG}
+# Fcitx5 输入法环境变量（GTK/Qt/X11 三端都需要设置）
+ENV GTK_IM_MODULE=fcitx
+ENV QT_IM_MODULE=fcitx
+ENV XMODIFIERS=@im=fcitx
+
+ARG KASMVNC_VERSION=1.3.0
+ARG TARGETARCH
+
+# 安装桌面环境及所有运行时依赖：
+#   - chromium: 浏览器（OpenClaw 需要）
+#   - xfce4: 轻量级桌面环境
+#   - fcitx5 + fcitx5-rime: 中文输入法（雾凇拼音）
+#   - fonts-noto-cjk: 中日韩字体
+#   - lsof: systemctl shim 用于端口检测
+#   - procps: ps/pgrep 等进程工具
+#   - locales: 中文 locale 生成
+RUN (apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    ca-certificates \
+    chromium \
+    curl \
+    dbus-x11 \
+    fonts-noto-cjk \
+    gnupg \
+    fcitx5 \
+    fcitx5-rime \
+    fcitx5-frontend-gtk3 \
+    fcitx5-frontend-qt5 \
+    fcitx5-config-qt \
+    im-config \
+    jq \
+    libdatetime-perl \
+    libegl1 \
+    libglu1-mesa \
+    libglx-mesa0 \
+    locales \
+    lsof \
+    procps \
+    sudo \
+    tzdata \
+    vim \
+    wget \
+    xfce4 \
+    xfce4-terminal \
+    xterm) \
+  || (rm -rf /etc/apt/sources.list.d && cp -a /etc/apt/sources.list.d.bak /etc/apt/sources.list.d && cp /etc/apt/sources.list.bak /etc/apt/sources.list 2>/dev/null; \
+      apt-get update \
+      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates chromium curl dbus-x11 fonts-noto-cjk gnupg \
+        fcitx5 fcitx5-rime fcitx5-frontend-gtk3 fcitx5-frontend-qt5 fcitx5-config-qt im-config \
+        jq libdatetime-perl libegl1 libglu1-mesa libglx-mesa0 locales lsof procps \
+        sudo tzdata vim wget xfce4 xfce4-terminal xterm) \
+  && ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+  && echo "${TZ}" > /etc/timezone \
+  && sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen \
+  && locale-gen zh_CN.UTF-8 \
+  && update-locale LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 \
+  && rm -rf /var/lib/apt/lists/*
+
+# 安装 Docker CE 实现容器内 Docker（DinD），使用阿里云镜像源
+RUN (curl -fsSL --connect-timeout 15 https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
+  && echo "deb [arch=${TARGETARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bookworm stable" \
+     > /etc/apt/sources.list.d/docker.list \
+  && apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --fix-missing \
+     docker-ce docker-ce-cli containerd.io docker-compose-plugin) \
+  || (rm -f /usr/share/keyrings/docker-archive-keyring.gpg /etc/apt/sources.list.d/docker.list; \
+      curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
+      && echo "deb [arch=${TARGETARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bookworm stable" \
+         > /etc/apt/sources.list.d/docker.list \
+      && apt-get update \
+      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --fix-missing \
+         docker-ce docker-ce-cli containerd.io docker-compose-plugin); \
+  rm -rf /var/lib/apt/lists/*
+
+# 创建 chromium-kasm 包装脚本：以无沙箱模式启动 Chromium 并开启远程调试端口
+# 同时修改桌面快捷方式指向此包装脚本，并创建自定义 .desktop 文件
+RUN printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'exec /usr/bin/chromium --no-sandbox --disable-gpu --disable-dev-shm-usage --disable-software-rasterizer --test-type --no-first-run --disable-background-networking --disable-sync --disable-default-apps --disable-component-update --disable-features=TranslateUI --user-data-dir="${HOME}/.config/chromium-user" --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 "$@"' \
+  > /usr/local/bin/chromium-kasm \
+  && chmod +x /usr/local/bin/chromium-kasm \
+  && sed -i 's|^Exec=/usr/bin/chromium %U|Exec=/usr/local/bin/chromium-kasm %U|' /usr/share/applications/chromium.desktop \
+  && echo 'NoDisplay=true' >> /usr/share/applications/chromium.desktop \
+  && sed -i 's|^Exec=exo-open --launch WebBrowser %u|Exec=/usr/local/bin/chromium-kasm %u|' /usr/share/applications/xfce4-web-browser.desktop \
+  && printf '%s\n' \
+    '[Desktop Entry]' \
+    'Version=1.0' \
+    'Name=Chromium' \
+    'GenericName=Web Browser' \
+    'Exec=/usr/local/bin/chromium-kasm %U' \
+    'Terminal=false' \
+    'Type=Application' \
+    'Icon=chromium' \
+    'Categories=Network;WebBrowser;' \
+    'MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;' \
+    > /usr/share/applications/chromium-kasm.desktop \
+  && printf '%s\n' \
+    '[Desktop Entry]' \
+    'Type=X-XFCE-Helper' \
+    'X-XFCE-Category=WebBrowser' \
+    'X-XFCE-Commands=/usr/local/bin/chromium-kasm' \
+    'X-XFCE-CommandsWithParameter=/usr/local/bin/chromium-kasm "%s"' \
+    'Name=Chromium' \
+    'Icon=chromium' \
+    > /usr/share/xfce4/helpers/chromium-kasm.desktop
+
+# 安装 VS Code（清华镜像无此仓库，统一使用官方源）
+RUN set -eux; \
+  mkdir -p /etc/apt/keyrings; \
+  wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/keyrings/microsoft-archive-keyring.gpg; \
+  echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/code stable main" \
+    > /etc/apt/sources.list.d/vscode.list; \
+  apt-get update; \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends code; \
+  rm -rf /var/lib/apt/lists/*
+
+# 创建 Chromium 和 VS Code 的桌面图标
+RUN mkdir -p /home/node/Desktop \
+  && cp /usr/share/applications/chromium-kasm.desktop /home/node/Desktop/chromium.desktop \
+  && cp /usr/share/applications/code.desktop /home/node/Desktop/vscode.desktop \
+  && chmod +x /home/node/Desktop/chromium.desktop /home/node/Desktop/vscode.desktop \
+  && chown -R node:node /home/node/Desktop
+
+# 安装 Hermes Agent（Nous Research）— root 安装，FHS 布局把二进制放到 /usr/local/bin/hermes（不被 /home/node 卷挂载覆盖）
+ARG INSTALL_HERMES=1
+RUN if [ "${INSTALL_HERMES}" = "1" ]; then \
+      curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh \
+        | bash -s -- --skip-setup \
+      || echo "[hermes-agent] install.sh 失败；容器将不包含 hermes 命令"; \
+      [ -d /usr/local/lib/hermes-agent ] && chown -R node:node /usr/local/lib/hermes-agent || true; \
+    fi
+
+# 根据目标架构（amd64/arm64）下载并安装对应版本的 KasmVNC .deb 包
+RUN set -eux; \
+  case "${TARGETARCH}" in \
+    amd64) pkg_arch="amd64" ;; \
+    arm64) pkg_arch="arm64" ;; \
+    *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+  esac; \
+  pkg="kasmvncserver_bookworm_${KASMVNC_VERSION}_${pkg_arch}.deb"; \
+  curl -fsSL --connect-timeout 15 "https://claw.ihasy.com/mirror/kasmvnc/${pkg}" -o "/tmp/${pkg}" \
+  || curl -fsSL "https://github.com/kasmtech/KasmVNC/releases/download/v${KASMVNC_VERSION}/${pkg}" -o "/tmp/${pkg}"; \
+  apt-get update --allow-insecure-repositories || apt-get update -o Acquire::AllowInsecureRepositories=true || apt-get update; \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --allow-unauthenticated "/tmp/${pkg}"; \
+  rm -f "/tmp/${pkg}"; \
+  rm -rf /var/lib/apt/lists/*
+
+
+# 安装雾凇拼音（Rime Ice）词库和配置，默认中文模式（ascii_mode reset=0）
+RUN (curl -fsSL --connect-timeout 15 https://claw.ihasy.com/mirror/rime-ice/rime-ice.tar.gz -o /tmp/rime-ice.tar.gz \
+  || curl -fsSL https://github.com/iDvel/rime-ice/archive/refs/heads/main.tar.gz -o /tmp/rime-ice.tar.gz) \
+  && mkdir -p /home/node/.local/share/fcitx5/rime \
+  && tar xzf /tmp/rime-ice.tar.gz -C /tmp/ \
+  && cp -r /tmp/rime-ice-main/* /home/node/.local/share/fcitx5/rime/ \
+  && rm -rf /tmp/rime-ice.tar.gz /tmp/rime-ice-main \
+  && printf '%s\n' \
+    'patch:' \
+    '  "switches/@0/reset": 0' \
+    > /home/node/.local/share/fcitx5/rime/default.custom.yaml \
+  && chown -R node:node /home/node/.local
+
+# 复制 systemctl shim 和 KasmVNC 启动脚本到容器内
+# 清理 Windows 换行符，设置可执行权限
+# 将 node 用户加入 ssl-cert 组（如果启用 DinD 则也加入 docker 组），配置免密 sudo
+COPY scripts/docker/systemctl-shim.sh /usr/local/bin/systemctl
+COPY scripts/docker/kasmvnc-startup.sh /usr/local/bin/kasmvnc-startup
+RUN sed -i 's/\r$//' /usr/local/bin/systemctl /usr/local/bin/kasmvnc-startup \
+  && chmod +x /usr/local/bin/systemctl /usr/local/bin/kasmvnc-startup \
+  && usermod -a -G ssl-cert node \
+  && (getent group docker >/dev/null && usermod -a -G docker node || true) \
+  && echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
+  && mkdir -p /home/node/.hermes /home/node/.vnc \
+  && chown -R node:node /home/node/.hermes /home/node/.vnc \
+  && chmod 700 /home/node/.hermes /home/node/.vnc
+
+# Register Fcitx5 as the system default input method framework
+RUN im-config -n fcitx5
+
+USER node
+
+# 配置 git 使用 HTTPS 替代 SSH（支持 hermes-agent 克隆）
+RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
+ && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
+ && git config --global url."https://".insteadOf "git://"
+
+EXPOSE 8642 8643 8443 8444
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8642/ || exit 1
+
+ENTRYPOINT ["/usr/local/bin/kasmvnc-startup"]
+CMD ["hermes", "gateway", "run"]
