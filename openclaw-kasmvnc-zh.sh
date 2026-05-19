@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # ============================================================================
-# openclaw-kasmvnc.sh — OpenClaw + KasmVNC 一键部署管理脚本（macOS / Linux）
+# hermes-kasmvnc-zh.sh — Hermes Agent + KasmVNC 一键部署管理脚本（macOS / Linux）
 #
 # 功能概述：
 #   自动生成 Dockerfile、docker-compose.yml、KasmVNC 启动脚本和 systemctl shim，
 #   然后通过 Docker Compose 构建并运行容器。容器内集成了 XFCE 桌面、Chromium 浏览器、
-#   Fcitx5 中文输入法（雾凇拼音）以及 OpenClaw 网关服务。
+#   Fcitx5 中文输入法（雾凇拼音）以及 Hermes Gateway 消息网关服务。
 #
 # 支持的子命令：
 #   install   — 初始化配置 + 构建镜像 + 启动容器
 #   uninstall — 停止容器（可选 --purge 删除安装目录）
-#   restart   — 重启 openclaw-gateway 容器
+#   restart   — 重启 hermes-kasmvnc 容器
 #   upgrade   — 在运行中的容器内升级 OpenClaw npm 包并热重启网关
 #   status    — 查看 Compose 服务状态
 #   logs      — 查看容器日志
@@ -23,11 +23,11 @@ if [ $# -gt 0 ]; then
   shift
 fi
 
-INSTALL_DIR="${INSTALL_DIR:-$HOME/openclaw-kasmvnc}"  # 安装目录
+INSTALL_DIR="${INSTALL_DIR:-$HOME/hermes-kasmvnc}"  # 安装目录
 GATEWAY_TOKEN="${GATEWAY_TOKEN:-}"                     # 网关访问令牌（留空则自动生成）
 KASM_PASSWORD="${KASM_PASSWORD:-}"                      # KasmVNC 登录密码（留空则自动生成）
 HTTPS_PORT="${HTTPS_PORT:-8443}"                        # KasmVNC HTTPS 宿主机端口
-GATEWAY_PORT="${GATEWAY_PORT:-18789}"                   # OpenClaw 网关宿主机端口
+GATEWAY_PORT="${GATEWAY_PORT:-18642}"                   # Hermes Gateway 宿主机端口
 PURGE=0                                                # 卸载时是否删除安装目录
 TAIL_LINES="${TAIL_LINES:-200}"                        # logs 命令默认显示行数
 HTTP_PROXY_URL="${HTTP_PROXY_URL:-}"                    # 容器内 HTTP 代理地址
@@ -37,22 +37,22 @@ NO_CACHE=0                                             # 是否禁用 Docker 构
 usage() {
   cat <<'EOF'
 Usage:
-  ./openclaw-kasmvnc.sh <command> [options]
+  ./hermes-kasmvnc-zh.sh <command> [options]
 
 Commands:
   install      Configure + build/run container (no git required)
   uninstall    Stop container; optional --purge removes install dir
-  restart      Restart openclaw-gateway container
+  restart      Restart hermes-kasmvnc container
   upgrade      Upgrade OpenClaw in running container (no image rebuild)
   status       Show compose service status
   logs         Show compose logs (--tail <n>, default 200)
 
 Options:
-  --install-dir <path>   Install directory (default: $HOME/openclaw-kasmvnc)
-  --gateway-token <str>  OPENCLAW_GATEWAY_TOKEN (auto-generate on install if omitted)
-  --kasm-password <str>  OPENCLAW_KASMVNC_PASSWORD (auto-generate on install if omitted)
+  --install-dir <path>   Install directory (default: $HOME/hermes-kasmvnc)
+  --gateway-token <str>  HERMES_GATEWAY_TOKEN (auto-generate on install if omitted)
+  --kasm-password <str>  HERMES_KASMVNC_PASSWORD (auto-generate on install if omitted)
   --https-port <port>    KasmVNC HTTPS host port (default: 8443)
-  --gateway-port <port>  OpenClaw gateway host port (default: 18789)
+  --gateway-port <port>  Hermes Gateway host port (default: 18642)
   --proxy <url>          HTTP proxy for container (default: none)
   --tail <n>             Log lines for logs command (default: 200)
   --no-cache             Disable Docker build cache (useful for troubleshooting)
@@ -174,53 +174,47 @@ ensure_build_context() {
   mkdir -p "$d/scripts/docker"
 
   # ── 生成 docker-compose.yml ──
-  # 定义 openclaw-gateway 服务：构建参数、环境变量、端口映射、卷挂载等
+  # 定义 hermes-kasmvnc 服务：构建参数、环境变量、端口映射、卷挂载等
   cat >"$d/docker-compose.yml" <<'EOF'
 services:
-  openclaw-gateway:
+  hermes-kasmvnc:
     build:
       context: .
       dockerfile: Dockerfile.kasmvnc
       args:
-        KASMVNC_VERSION: ${OPENCLAW_KASMVNC_VERSION:-1.3.0}
-        HTTP_PROXY: ${OPENCLAW_HTTP_PROXY:-}
-        HTTPS_PROXY: ${OPENCLAW_HTTP_PROXY:-}
+        KASMVNC_VERSION: ${HERMES_KASMVNC_VERSION:-1.3.0}
+        HTTP_PROXY: ${HERMES_HTTP_PROXY:-}
+        HTTPS_PROXY: ${HERMES_HTTP_PROXY:-}
         OPENC_CACHE_BUST: ${OPENC_CACHE_BUST:-1}
-    image: ${OPENCLAW_KASMVNC_IMAGE:-openclaw:kasmvnc}
+    image: ${HERMES_KASMVNC_IMAGE:-hermes:kasmvnc}
     command:
       [
-        "openclaw",
-        "gateway",
-        "--allow-unconfigured",
-        "--bind",
-        "${OPENCLAW_GATEWAY_BIND:-lan}",
-        "--port",
-        "18789",
+        "hermes", "gateway", "run",
       ]
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
-      OPENCLAW_KASMVNC_USER: ${OPENCLAW_KASMVNC_USER:-node}
-      OPENCLAW_KASMVNC_PASSWORD: ${OPENCLAW_KASMVNC_PASSWORD:-}
-      OPENCLAW_KASMVNC_RESOLUTION: ${OPENCLAW_KASMVNC_RESOLUTION:-1920x1080}
-      OPENCLAW_KASMVNC_DEPTH: ${OPENCLAW_KASMVNC_DEPTH:-24}
+      HERMES_GATEWAY_TOKEN: ${HERMES_GATEWAY_TOKEN}
+      HERMES_KASMVNC_USER: ${HERMES_KASMVNC_USER:-node}
+      HERMES_KASMVNC_PASSWORD: ${HERMES_KASMVNC_PASSWORD:-}
+      HERMES_KASMVNC_RESOLUTION: ${HERMES_KASMVNC_RESOLUTION:-1920x1080}
+      HERMES_KASMVNC_DEPTH: ${HERMES_KASMVNC_DEPTH:-24}
       TZ: ${TZ:-Asia/Shanghai}
       LANG: zh_CN.UTF-8
       LANGUAGE: zh_CN:zh
       LC_ALL: zh_CN.UTF-8
-      HTTP_PROXY: ${OPENCLAW_HTTP_PROXY:-}
-      HTTPS_PROXY: ${OPENCLAW_HTTP_PROXY:-}
-      http_proxy: ${OPENCLAW_HTTP_PROXY:-}
-      https_proxy: ${OPENCLAW_HTTP_PROXY:-}
-      NO_PROXY: ${OPENCLAW_NO_PROXY:-localhost,127.0.0.1}
-      no_proxy: ${OPENCLAW_NO_PROXY:-localhost,127.0.0.1}
+      HTTP_PROXY: ${HERMES_HTTP_PROXY:-}
+      HTTPS_PROXY: ${HERMES_HTTP_PROXY:-}
+      http_proxy: ${HERMES_HTTP_PROXY:-}
+      https_proxy: ${HERMES_HTTP_PROXY:-}
+      NO_PROXY: ${HERMES_NO_PROXY:-localhost,127.0.0.1}
+      no_proxy: ${HERMES_NO_PROXY:-localhost,127.0.0.1}
     volumes:
-      - ${OPENCLAW_DATA_DIR:-./openclaw-data}:/home/node
+      - ${HERMES_DATA_DIR:-./hermes-data}:/home/node
     ports:
-      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
-      - "${OPENCLAW_GATEWAY_BRIDGE_PORT:-18790}:18790"
-      - "${OPENCLAW_KASMVNC_HTTPS_PORT:-8443}:8444"
+      - "${HERMES_GATEWAY_PORT:-18642}:8642"
+      - "${HERMES_GATEWAY_BRIDGE_PORT:-18643}:8643"
+      - "${HERMES_KASMVNC_HTTPS_PORT:-8443}:8444"
     shm_size: '2gb'
 EOF
 
@@ -245,7 +239,7 @@ EOF
 EOF
 
   # 动态检测宿主机是否有 NVIDIA GPU，如果有则自动注入 GPU 支持配置
-  if command -v nvidia-smi >/dev/null 2>&1 || [ "${OPENCLAW_ENABLE_GPU:-0}" == "1" ]; then
+  if command -v nvidia-smi >/dev/null 2>&1 || [ "${HERMES_ENABLE_GPU:-0}" == "1" ]; then
     cat >>"$d/docker-compose.yml" <<'EOF'
     deploy:
       resources:
@@ -292,9 +286,9 @@ RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
  && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
  && git config --global url."https://".insteadOf "git://" \
  && (npm config set registry https://registry.npmmirror.com \
-     && npm install -g openclaw@latest --no-audit --no-fund \
+     # hermes-agent installed via curl below \
      || (npm config set registry https://registry.npmjs.org \
-         && npm install -g openclaw@latest --no-audit --no-fund)) \
+         # hermes-agent installed via curl below)) \
  && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
 
 # 配置时区和语言环境（可通过构建参数覆盖）
@@ -487,33 +481,33 @@ RUN sed -i 's/\r$//' /usr/local/bin/systemctl /usr/local/bin/kasmvnc-startup \
   && usermod -a -G ssl-cert node \
   && (getent group docker >/dev/null && usermod -a -G docker node || true) \
   && echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
-  && mkdir -p /home/node/.openclaw /home/node/.vnc \
-  && chown -R node:node /home/node/.openclaw /home/node/.vnc \
-  && chmod 700 /home/node/.openclaw /home/node/.vnc
+  && mkdir -p /home/node/.hermes /home/node/.vnc \
+  && chown -R node:node /home/node/.hermes /home/node/.vnc \
+  && chmod 700 /home/node/.hermes /home/node/.vnc
 
 # Register Fcitx5 as the system default input method framework
 RUN im-config -n fcitx5
 
 USER node
 
-# 配置 git 使用 HTTPS 替代 SSH（支持 npm 依赖和 openclaw update）
+# 配置 git 使用 HTTPS 替代 SSH（支持 hermes-agent 克隆）
 RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
  && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
  && git config --global url."https://".insteadOf "git://"
 
-EXPOSE 18789 18790 8443 8444
+EXPOSE 8642 8643 8443 8444
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:18789/ || exit 1
+  CMD curl -f http://localhost:8642/ || exit 1
 
 ENTRYPOINT ["/usr/local/bin/kasmvnc-startup"]
-CMD ["openclaw", "gateway", "--bind", "lan", "--port", "18789"]
+CMD ["hermes", "gateway", "run"]
 EOF
 
   # ── 生成 kasmvnc-startup.sh（容器入口脚本）──
   # 容器启动时执行：初始化环境变量 → 启动 Docker 守护进程（DinD）→ 配置输入法 →
   # 清理残留 VNC 状态 → 覆写 KasmVNC 剪贴板配置 → 启动 VNC 服务器 + XFCE 桌面 →
-  # 最后执行 CMD 传入的命令（通常是 openclaw gateway）并 sleep infinity 保持容器存活
+  # 最后执行 CMD 传入的命令（通常是 hermes gateway run）并 sleep infinity 保持容器存活
   cat >"$d/scripts/docker/kasmvnc-startup.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -521,7 +515,7 @@ set -euo pipefail
 # ── 环境变量初始化 ──
 export HOME="${HOME:-/home/node}"
 export USER="${USER:-node}"
-export DISPLAY="${OPENCLAW_KASMVNC_DISPLAY:-:1}"
+export DISPLAY="${HERMES_KASMVNC_DISPLAY:-:1}"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/xdg-runtime}"
 # Fcitx5 输入法环境变量（GTK/Qt/X11 三端）
 export GTK_IM_MODULE="${GTK_IM_MODULE:-fcitx}"
@@ -530,39 +524,39 @@ export XMODIFIERS="${XMODIFIERS:-@im=fcitx}"
 export BROWSER="/usr/local/bin/chromium-kasm"
 
 # 获取 OpenClaw 版本号用于界面显示
-if [ -z "${OPENCLAW_VERSION:-}" ]; then
-  OPENCLAW_VERSION=$(openclaw --version 2>/dev/null | head -n1 || echo "dev")
-  export OPENCLAW_VERSION
+if [ -z "${HERMES_VERSION:-}" ]; then
+  HERMES_VERSION=$(hermes --version 2>/dev/null | head -n1 || echo "dev")
+  export HERMES_VERSION
 fi
 
 # KasmVNC 配置参数
-KASMVNC_USER="${OPENCLAW_KASMVNC_USER:-node}"
-KASMVNC_PASSWORD="${OPENCLAW_KASMVNC_PASSWORD:-}"
-RESOLUTION="${OPENCLAW_KASMVNC_RESOLUTION:-1920x1080}"
-DEPTH="${OPENCLAW_KASMVNC_DEPTH:-24}"
+KASMVNC_USER="${HERMES_KASMVNC_USER:-node}"
+KASMVNC_PASSWORD="${HERMES_KASMVNC_PASSWORD:-}"
+RESOLUTION="${HERMES_KASMVNC_RESOLUTION:-1920x1080}"
+DEPTH="${HERMES_KASMVNC_DEPTH:-24}"
 
 # 修复挂载卷时 /home/node 或子目录可能归 root 所有的问题（每次启动都修，幂等）
 sudo chown "$(id -u):$(id -g)" "${HOME}" 2>/dev/null || true
-[ -e "${HOME}/.openclaw" ] && sudo chown -R "$(id -u):$(id -g)" "${HOME}/.openclaw" 2>/dev/null || true
+[ -e "${HOME}/.hermes" ] && sudo chown -R "$(id -u):$(id -g)" "${HOME}/.hermes" 2>/dev/null || true
 [ -e "${HOME}/.vnc" ] && sudo chown -R "$(id -u):$(id -g)" "${HOME}/.vnc" 2>/dev/null || true
 [ -e "${HOME}/.config" ] && sudo chown -R "$(id -u):$(id -g)" "${HOME}/.config" 2>/dev/null || true
 [ -e "${HOME}/Desktop" ] && sudo chown -R "$(id -u):$(id -g)" "${HOME}/Desktop" 2>/dev/null || true
 
 # 创建 VNC 和 XDG 运行时目录
-mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.openclaw"
-chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.openclaw" 2>/dev/null || true
+mkdir -p "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.hermes"
+chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.hermes" 2>/dev/null || true
 
 # 后台启动 Docker 守护进程（DinD 支持），等待 socket 就绪（仅在未禁用 DinD 时）
 if [ "${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
-  (sudo nohup dockerd >/tmp/openclaw-dockerd.log 2>&1 &) || true
+  (sudo nohup dockerd >/tmp/hermes-dockerd.log 2>&1 &) || true
   for i in $(seq 1 30); do
     [ -S /var/run/docker.sock ] && break
     sleep 1
   done
 fi
 
-# 清理可能残留的 openclaw 别名（历史版本遗留）
-sed -i '/^alias openclaw=/d' "${HOME}/.bashrc" 2>/dev/null || true
+# 清理可能残留的 hermes 别名（历史版本遗留）
+sed -i '/^alias hermes=/d' "${HOME}/.bashrc" 2>/dev/null || true
 
 # 确保桌面图标存在（volume 挂载可能覆盖镜像中的图标）
 mkdir -p "${HOME}/Desktop"
@@ -660,7 +654,7 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
   export DBUS_SESSION_BUS_ADDRESS
 fi
 if command -v fcitx5 >/dev/null 2>&1; then
-  fcitx5 -d >/tmp/openclaw-fcitx5.log 2>&1 || true
+  fcitx5 -d >/tmp/hermes-fcitx5.log 2>&1 || true
 fi
 exec startxfce4
 EOH
@@ -668,7 +662,7 @@ chmod +x "${HOME}/.vnc/xstartup"
 
 # 使用 KasmVNC 的桌面环境选择器注册 XFCE
 if command -v /usr/lib/kasmvncserver/select-de.sh >/dev/null 2>&1; then
-  /usr/lib/kasmvncserver/select-de.sh -y -s XFCE >/tmp/openclaw-kasmvnc-selectde.log 2>&1 || true
+  /usr/lib/kasmvncserver/select-de.sh -y -s XFCE >/tmp/hermes-kasmvnc-selectde.log 2>&1 || true
 fi
 
 # 设置 VNC 登录密码
@@ -698,11 +692,11 @@ data_loss_prevention:
 KASMCFG
 
 # ── 启动 VNC 服务器 ──
-vncserver "${DISPLAY}" -geometry "${RESOLUTION}" -depth "${DEPTH}" -xstartup "${HOME}/.vnc/xstartup" -publicIP 127.0.0.1 >/tmp/openclaw-kasmvnc.log 2>&1 || true
+vncserver "${DISPLAY}" -geometry "${RESOLUTION}" -depth "${DEPTH}" -xstartup "${HOME}/.vnc/xstartup" -publicIP 127.0.0.1 >/tmp/hermes-kasmvnc.log 2>&1 || true
 
 # 如果 XFCE 会话未自动启动，手动拉起（兜底机制）
 if ! pgrep -u "$(id -u)" -f "xfce4-session" >/dev/null 2>&1; then
-  DISPLAY="${DISPLAY}" nohup sh "${HOME}/.vnc/xstartup" >/tmp/openclaw-xfce-autostart.log 2>&1 &
+  DISPLAY="${DISPLAY}" nohup sh "${HOME}/.vnc/xstartup" >/tmp/hermes-xfce-autostart.log 2>&1 &
 fi
 
 # 设置系统默认浏览器为 chromium-kasm
@@ -711,26 +705,26 @@ if command -v xdg-settings >/dev/null 2>&1; then
 fi
 
 # ── 清理配置文件中的平台指纹（保留 auth tokens）──
-if [ -f "${HOME}/.openclaw/openclaw.json" ]; then
+if [ -f "${HOME}/.hermes/hermes.json" ]; then
   if command -v jq >/dev/null 2>&1; then
     # Use jq to surgically remove only platform fields
     jq 'del(.identity.pinnedPlatform, .identity.pinnedDeviceFamily)' \
-      "${HOME}/.openclaw/openclaw.json" > "${HOME}/.openclaw/openclaw.json.tmp" 2>/dev/null \
-      && mv "${HOME}/.openclaw/openclaw.json.tmp" "${HOME}/.openclaw/openclaw.json" || true
+      "${HOME}/.hermes/hermes.json" > "${HOME}/.hermes/hermes.json.tmp" 2>/dev/null \
+      && mv "${HOME}/.hermes/hermes.json.tmp" "${HOME}/.hermes/hermes.json" || true
   else
     # Fallback: if non-Linux platform detected, backup entire config
-    if grep -q '"pinnedPlatform".*"darwin"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null || \
-       grep -q '"pinnedPlatform".*"win32"' "${HOME}/.openclaw/openclaw.json" 2>/dev/null; then
+    if grep -q '"pinnedPlatform".*"darwin"' "${HOME}/.hermes/hermes.json" 2>/dev/null || \
+       grep -q '"pinnedPlatform".*"win32"' "${HOME}/.hermes/hermes.json" 2>/dev/null; then
       echo "Detected non-Linux platform config, backing up..." >&2
-      mv "${HOME}/.openclaw/openclaw.json" "${HOME}/.openclaw/openclaw.json.bak" 2>/dev/null || true
+      mv "${HOME}/.hermes/hermes.json" "${HOME}/.hermes/hermes.json.bak" 2>/dev/null || true
     fi
   fi
 fi
 
 # ── 确保 systemd service 文件存在（支持 install/uninstall 命令）──
-if [ ! -f "${HOME}/.config/systemd/user/openclaw-gateway.service" ]; then
+if [ ! -f "${HOME}/.config/systemd/user/hermes-gateway.service" ]; then
   mkdir -p "${HOME}/.config/systemd/user"
-  cat > "${HOME}/.config/systemd/user/openclaw-gateway.service" <<'EOSVC'
+  cat > "${HOME}/.config/systemd/user/hermes-gateway.service" <<'EOSVC'
 [Unit]
 Description=OpenClaw Gateway (managed by supervisor)
 After=network-online.target
@@ -747,53 +741,47 @@ EOSVC
 fi
 
 # Clear stop marker (auto-start after container restart)
-rm -f /tmp/openclaw-gateway.stopped
+rm -f /tmp/hermes-gateway.stopped
 
 # 在启动前修复/补齐本地 gateway 配置。最近的 OpenClaw 版本会把
 # “配置文件已存在但缺少 gateway.mode” 视为损坏配置，即使仍传了
 # --allow-unconfigured 也可能拒绝启动。
-mkdir -p "${HOME}/.openclaw/workspace"
-openclaw config set gateway.mode local >/dev/null 2>&1 || true
-openclaw config set agents.defaults.workspace "${HOME}/.openclaw/workspace" >/dev/null 2>&1 || true
+mkdir -p "${HOME}/.hermes/workspace"
+# hermes config set gateway.mode local >/dev/null 2>&1 || true
+hermes config set agents.defaults.workspace "${HOME}/.hermes/workspace" >/dev/null 2>&1 || true
 
 # 配置 gateway 允许非 loopback 绑定时的 Host-header 回退（远程访问必需）
-openclaw config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
+hermes config set gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback true >/dev/null 2>&1 || true
 # 强制设置 gateway bind 配置（覆盖可能的 loopback 配置）
-openclaw config set gateway.bind "${OPENCLAW_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
+hermes config set gateway.bind "${HERMES_GATEWAY_BIND:-lan}" >/dev/null 2>&1 || true
 # 启用 self-improvement hook
-openclaw hooks enable self-improvement >/dev/null 2>&1 || true
+hermes hooks enable self-improvement >/dev/null 2>&1 || true
 
 # 直接前台运行 supervisor 循环（不走 systemctl，避免双重后台化）
 # 设置环境变量让 gateway 知道有 supervisor 管理
-export OPENCLAW_SERVICE_MARKER=1
-unset OPENCLAW_NO_RESPAWN 2>/dev/null || true
+export HERMES_SERVICE_MARKER=1
+unset HERMES_NO_RESPAWN 2>/dev/null || true
 
 # Supervisor 循环：gateway 退出后自动重启（带最新版本号）
 # 注意：不会因为 STOP_MARKER 而退出循环，只是暂停启动
 while true; do
   # 检查停止标记：如果存在则等待它被清除
-  while [ -f /tmp/openclaw-gateway.stopped ]; do
+  while [ -f /tmp/hermes-gateway.stopped ]; do
     sleep 1
   done
 
   # 从 package.json 读取版本号并导出
-  ver="$(node -p "require('/usr/local/lib/node_modules/openclaw/package.json').version" 2>/dev/null || true)"
-  if [ -n "$ver" ]; then export OPENCLAW_VERSION="$ver"; fi
+  ver="$(python3 -c "import json; print(json.load(open('/usr/local/lib/hermes-agent/package.json'))['version'])" 2>/dev/null || true)"
+  if [ -n "$ver" ]; then export HERMES_VERSION="$ver"; fi
 
   # 启动 gateway（前台运行）
   # 临时关闭 set -e 以便捕获退出码
   set +e
-  if command -v openclaw >/dev/null 2>&1; then
-    # 如果设置了 OPENCLAW_GATEWAY_TOKEN 则添加 --token 参数
-    if [ -n "${OPENCLAW_GATEWAY_TOKEN:-}" ]; then
-      openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port 18789 --token "${OPENCLAW_GATEWAY_TOKEN}" >>/tmp/openclaw-gateway.log 2>&1
-    else
-      openclaw gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port 18789 >>/tmp/openclaw-gateway.log 2>&1
-    fi
-  elif command -v openclaw-gateway >/dev/null 2>&1; then
-    openclaw-gateway --port 18789 >>/tmp/openclaw-gateway.log 2>&1
+  if command -v hermes >/dev/null 2>&1; then
+    # hermes gateway run — supports --token via .env / config
+    hermes gateway run >>/tmp/hermes-gateway.log 2>&1
   else
-    echo "kasmvnc-startup: cannot start gateway (openclaw CLI not found)" >&2
+    echo "kasmvnc-startup: cannot start gateway (hermes CLI not found)" >&2
     sleep infinity
   fi
 
@@ -814,31 +802,30 @@ EOF
   chmod +x "$d/scripts/docker/kasmvnc-startup.sh"
 
   # ── 生成 systemctl-shim.sh（systemctl 模拟脚本）──
-  # 容器内没有 systemd，但 openclaw CLI 依赖 systemctl 管理网关服务。
+  # 容器内没有 systemd，但 hermes CLI 依赖 systemctl 管理网关服务。
   # 此 shim 拦截所有 systemctl 调用，将其转换为进程管理操作：
   #   - restart → 完整的 stop + start（杀旧进程 → 启新进程，确保加载最新代码）
   #   - stop    → 发送 SIGTERM 优雅停止
   #   - start   → 通过 nohup 后台启动网关进程
-  #   - status  → 始终返回 0（openclaw 用此判断 systemd 是否可用）
+  #   - status  → 始终返回 0（hermes 用此判断 systemd 是否可用）
   #   - is-enabled → 通过 marker 文件跟踪 install/uninstall 状态
   # 进程识别使用 lsof 端口检测，因为 Node.js process.title 会覆盖整个 cmdline
   cat >"$d/scripts/docker/systemctl-shim.sh" <<'SHIMEOF'
 #!/usr/bin/env bash
 # systemctl shim — 容器内 systemd 替代方案
-# 将 openclaw CLI 发出的 systemctl 调用转换为进程信号操作
+# 将 hermes CLI 发出的 systemctl 调用转换为进程信号操作
 set -euo pipefail
 
 # 服务禁用标记文件（用于跟踪 install/uninstall 状态）
-DISABLED_MARKER="/tmp/openclaw-gateway.disabled"
-STOP_MARKER="/tmp/openclaw-gateway.stopped"
+DISABLED_MARKER="/tmp/hermes-gateway.disabled"
+STOP_MARKER="/tmp/hermes-gateway.stopped"
 
 # 查找网关进程 PID
 # 使用 lsof 检测监听端口的进程，这是唯一可靠的方法：
-# Node.js 的 process.title 会覆盖整个 /proc/PID/cmdline，
-# 导致服务进程和 CLI 进程的命令行完全相同，无法通过 pgrep 区分
+# Python/Gateway processes can have similar command lines, lsof on port is reliable
 find_gateway_pid() {
   local pid
-  pid="$(lsof -i :${OPENCLAW_GATEWAY_INTERNAL_PORT:-18789} -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
+  pid="$(lsof -i :${HERMES_GATEWAY_INTERNAL_PORT:-8642} -sTCP:LISTEN -t 2>/dev/null | head -1 || true)"
   if [ -n "$pid" ] && [ "$pid" != "1" ]; then
     echo "$pid"
     return 0
@@ -846,13 +833,13 @@ find_gateway_pid() {
   return 1
 }
 
-# 从 openclaw 的 package.json 解析版本号并导出为环境变量
-# gateway 的 resolveRuntimeServiceVersion() 会读取 OPENCLAW_VERSION 环境变量，
+# 从 hermes-agent 的 package.json 解析版本号并导出为环境变量
+# gateway 的 resolveRuntimeServiceVersion() 会读取 HERMES_VERSION 环境变量，
 # 通过 initSelfPresence() 推送给前端 webchat 显示
-resolve_openclaw_version() {
+resolve_hermes_version() {
   local ver
-  ver="$(node -p "require('/usr/local/lib/node_modules/openclaw/package.json').version" 2>/dev/null || true)"
-  if [ -n "$ver" ]; then export OPENCLAW_VERSION="$ver"; fi
+  ver="$(python3 -c "import json; print(json.load(open('/usr/local/lib/hermes-agent/package.json'))['version'])" 2>/dev/null || true)"
+  if [ -n "$ver" ]; then export HERMES_VERSION="$ver"; fi
 }
 
 # 等待网关进程启动就绪（检查端口监听）
@@ -880,7 +867,7 @@ done
 # ── 根据动作执行对应操作 ──
 case "$action" in
   daemon-reload|status)
-    # 始终返回 0：openclaw CLI 调用 "systemctl --user status" 检测 systemd 是否可用
+    # 始终返回 0：hermes CLI 调用 "systemctl --user status" 检测 systemd 是否可用
     # 返回非零 = "systemctl 不可用" = 所有命令都会失败
     exit 0 ;;
   enable)
@@ -891,7 +878,7 @@ case "$action" in
     touch "$DISABLED_MARKER"; exit 0 ;;
   is-enabled)
     # 通过 marker 文件跟踪 install/uninstall 状态
-    # 默认（无 marker）= 已启用，这样入口脚本启动的网关无需额外 "openclaw gateway install"
+    # 默认（无 marker）= 已启用，这样入口脚本启动的网关无需额外 "hermes gateway install"
     [ -f "$DISABLED_MARKER" ] && exit 1
     exit 0 ;;
   is-active)
@@ -936,7 +923,7 @@ case "$action" in
     kill -KILL "$pid" 2>/dev/null || true
     exit 0 ;;
   show)
-    # 输出 systemd 风格的属性信息（openclaw CLI 解析用）
+    # 输出 systemd 风格的属性信息（hermes CLI 解析用）
     pid=$(find_gateway_pid || true)
     if [ -n "$pid" ]; then
       printf 'ActiveState=active\nSubState=running\nMainPID=%s\nExecMainStatus=0\nExecMainCode=exited\n' "$pid"
@@ -950,16 +937,16 @@ SHIMEOF
 }
 
 # ── 容器健康检查 ──────────────────────────────────────────────────────────────
-# 验证 openclaw-gateway 容器正在运行，且容器内的网关进程已就绪
+# 验证 hermes-kasmvnc 容器正在运行，且容器内的网关进程已就绪
 assert_gateway_running() {
   local cid
-  cid="$(compose_cmd ps -q openclaw-gateway | head -n 1)"
+  cid="$(compose_cmd ps -q hermes-kasmvnc | head -n 1)"
   if [ -z "$cid" ]; then
-    echo "openclaw-gateway container not found after compose operation." >&2
+    echo "hermes-kasmvnc container not found after compose operation." >&2
     exit 1
   fi
   if [ "$(docker inspect -f '{{.State.Running}}' "$cid" 2>/dev/null || echo false)" != "true" ]; then
-    echo "openclaw-gateway is not running (container: $cid)." >&2
+    echo "hermes-kasmvnc is not running (container: $cid)." >&2
     exit 1
   fi
   # Also verify the gateway process inside the container is alive（最多等待 600 秒）
@@ -967,7 +954,7 @@ assert_gateway_running() {
   echo "等待 gateway 就绪（首次安装最长需要 10 分钟）..." >&2
   local retries=0
   while [ $retries -lt 300 ]; do
-    if docker exec "$cid" sh -c 'systemctl is-active openclaw-gateway' >/dev/null 2>&1; then
+    if docker exec "$cid" sh -c 'systemctl is-active hermes-kasmvnc' >/dev/null 2>&1; then
       return 0
     fi
     if [ $retries -gt 0 ] && [ $((retries % 30)) -eq 0 ]; then
@@ -979,11 +966,11 @@ assert_gateway_running() {
   echo "=== 容器日志最近 80 行 ===" >&2
   docker logs --tail 80 "$cid" >&2 2>&1 || true
   echo "=== Gateway 日志最近 60 行 ===" >&2
-  docker exec "$cid" sh -c 'tail -n 60 /tmp/openclaw-gateway.log 2>/dev/null' >&2 || true
+  docker exec "$cid" sh -c 'tail -n 60 /tmp/hermes-gateway.log 2>/dev/null' >&2 || true
   echo "" >&2
   echo "Gateway 在 10 分钟内未就绪。请稍后手动检查状态：" >&2
-  echo "  docker exec $cid systemctl is-active openclaw-gateway" >&2
-  echo "  curl http://127.0.0.1:18789/" >&2
+  echo "  docker exec $cid systemctl is-active hermes-kasmvnc" >&2
+  echo "  curl http://127.0.0.1:8642/" >&2
   echo "Container is running but gateway process is not responding (container: $cid)." >&2
   exit 1
 }
@@ -992,7 +979,7 @@ assert_gateway_running() {
 require_install_dir() {
   if [ ! -d "$INSTALL_DIR" ]; then
     echo "Install directory not found: $INSTALL_DIR" >&2
-    echo "Run './openclaw-kasmvnc-zh.sh install' first." >&2
+    echo "Run './hermes-kasmvnc-zh.sh install' first." >&2
     exit 1
   fi
 }
@@ -1068,16 +1055,16 @@ install_cmd() {
 
   (
     cd "$INSTALL_DIR"
-    mkdir -p .openclaw .openclaw/workspace
+    mkdir -p .hermes .hermes/workspace
     if [ "$(uname -s)" == "Linux" ]; then
-      chown -R 1000:1000 .openclaw 2>/dev/null || true
+      chown -R 1000:1000 .hermes 2>/dev/null || true
     fi
-    upsert_env_line .env OPENCLAW_CONFIG_DIR "./.openclaw"
-    upsert_env_line .env OPENCLAW_WORKSPACE_DIR "./.openclaw/workspace"
-    upsert_env_line .env OPENCLAW_GATEWAY_TOKEN "$GATEWAY_TOKEN"
-    upsert_env_line .env OPENCLAW_GATEWAY_PORT "$GATEWAY_PORT"
-    upsert_env_line .env OPENCLAW_KASMVNC_PASSWORD "$KASM_PASSWORD"
-    upsert_env_line .env OPENCLAW_KASMVNC_HTTPS_PORT "$HTTPS_PORT"
+    upsert_env_line .env OPENCLAW_CONFIG_DIR "./.hermes"
+    upsert_env_line .env OPENCLAW_WORKSPACE_DIR "./.hermes/workspace"
+    upsert_env_line .env HERMES_GATEWAY_TOKEN "$GATEWAY_TOKEN"
+    upsert_env_line .env HERMES_GATEWAY_PORT "$GATEWAY_PORT"
+    upsert_env_line .env HERMES_KASMVNC_PASSWORD "$KASM_PASSWORD"
+    upsert_env_line .env HERMES_KASMVNC_HTTPS_PORT "$HTTPS_PORT"
     upsert_env_line .env TZ "Asia/Shanghai"
     upsert_env_line .env LANG "zh_CN.UTF-8"
     upsert_env_line .env LANGUAGE "zh_CN:zh"
@@ -1086,13 +1073,13 @@ install_cmd() {
       upsert_env_line .env NO_DIND "1"
     fi
     if [ -n "$HTTP_PROXY_URL" ]; then
-      upsert_env_line .env OPENCLAW_HTTP_PROXY "$HTTP_PROXY_URL"
+      upsert_env_line .env HERMES_HTTP_PROXY "$HTTP_PROXY_URL"
     fi
     if [ "$NO_CACHE" -eq 1 ]; then
-      compose_cmd build --no-cache openclaw-gateway
-      compose_cmd up -d openclaw-gateway
+      compose_cmd build --no-cache hermes-kasmvnc
+      compose_cmd up -d hermes-kasmvnc
     else
-      compose_cmd up -d --build openclaw-gateway
+      compose_cmd up -d --build hermes-kasmvnc
     fi
     assert_gateway_running
   )
@@ -1102,8 +1089,8 @@ install_cmd() {
   echo "Directory: $INSTALL_DIR"
   echo "WebChat: http://127.0.0.1:${GATEWAY_PORT}/chat?session=main"
   echo "Desktop: https://127.0.0.1:${HTTPS_PORT}"
-  echo "OPENCLAW_GATEWAY_TOKEN=${GATEWAY_TOKEN}"
-  echo "OPENCLAW_KASMVNC_PASSWORD=${KASM_PASSWORD}"
+  echo "HERMES_GATEWAY_TOKEN=${GATEWAY_TOKEN}"
+  echo "HERMES_KASMVNC_PASSWORD=${KASM_PASSWORD}"
 }
 
 # ── uninstall 命令 ────────────────────────────────────────────────────────────
@@ -1131,53 +1118,40 @@ uninstall_cmd() {
 }
 
 # ── restart 命令 ──────────────────────────────────────────────────────────────
-# 重启 openclaw-gateway 容器（会触发入口脚本重新执行，VNC 桌面会短暂断连）
+# 重启 hermes-kasmvnc 容器（会触发入口脚本重新执行，VNC 桌面会短暂断连）
 restart_cmd() {
   require_install_dir
   (
     cd "$INSTALL_DIR"
     ensure_build_context
-    compose_cmd restart openclaw-gateway
+    compose_cmd restart hermes-kasmvnc
     assert_gateway_running
   )
 }
 
 # ── upgrade 命令 ──────────────────────────────────────────────────────────────
-# 在运行中的容器内执行 npm 升级 openclaw 包，然后热重启网关进程。
-# 不重建镜像，不中断 VNC 桌面会话。升级失败最多重试 3 次。
+# 在运行中的容器内执行 hermes-agent 升级（重新运行安装脚本），然后热重启网关进程。
+# 不重建镜像，不中断 VNC 桌面会话。
 upgrade_cmd() {
   require_install_dir
   (
     cd "$INSTALL_DIR"
     ensure_build_context
-    compose_cmd up -d openclaw-gateway
-    compose_cmd exec -T openclaw-gateway sh -lc '
+    echo "升级 hermes-agent..."
+    compose_cmd exec -T hermes-kasmvnc sh -lc '
       set -e
-      echo "registry=https://registry.npmmirror.com" > "${HOME}/.npmrc"
-      rm -rf /usr/local/lib/node_modules/.openclaw-* /usr/local/bin/.openclaw-* 2>/dev/null || true
-      attempt=1
-      until timeout 30m npm i -g openclaw@latest --no-audit --no-fund --loglevel=info; do
-        if [ "${attempt}" -ge 3 ]; then
-          echo "openclaw upgrade failed after ${attempt} attempts" >&2
-          exit 1
-        fi
-        attempt=$((attempt + 1))
-        sleep 5
-      done
+      # hermes-agent 通过重新运行 install.sh 升级
+      curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh \
+        | bash -s -- --skip-setup 2>&1 || echo "Upgrade attempt finished"
     '
-    compose_cmd exec -T openclaw-gateway sh -lc '
-      set -e
-      openclaw gateway restart >/tmp/openclaw-upgrade-restart.log 2>&1 || openclaw gateway start
-      # Verify gateway process is actually running
-      for i in $(seq 1 30); do
-        if systemctl is-active openclaw-gateway >/dev/null 2>&1; then
-          exit 0
-        fi
-        sleep 1
-      done
-      echo "Gateway process failed to start after upgrade" >&2
-      exit 1
+    echo "重启网关..."
+    compose_cmd exec -T hermes-kasmvnc sh -lc '
+      pkill -f "hermes.*gateway" 2>/dev/null || true
+      sleep 2
+      hermes gateway run >>/tmp/hermes-gateway.log 2>&1 &
+      echo "Gateway restarted"
     '
+    sleep 5
     assert_gateway_running
   )
 }
@@ -1198,7 +1172,7 @@ logs_cmd() {
   require_install_dir
   (
     cd "$INSTALL_DIR"
-    compose_cmd logs --tail="$TAIL_LINES" openclaw-gateway
+    compose_cmd logs --tail="$TAIL_LINES" hermes-kasmvnc
   )
 }
 

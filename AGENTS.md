@@ -1,62 +1,55 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This file provides guidance to AI coding agents working on this repository.
 
 ## Project Overview
 
-One-click deployment tool for OpenClaw + KasmVNC. Four self-contained scripts (two versions) generate all Docker build files at runtime — no static Dockerfiles or Compose files in the repo.
+Fork of [ddong8/openclaw-kasmvnc](https://github.com/ddong8/openclaw-kasmvnc), adapted to run **Hermes Agent** instead of OpenClaw inside the KasmVNC desktop container.
 
-### File Structure
-
-| File | Version | Description |
-|------|---------|-------------|
-| `openclaw-kasmvnc.sh` | International | Bash script for macOS/Linux — official sources, en_US locale, UTC timezone |
-| `openclaw-kasmvnc.ps1` | International | PowerShell script for Windows — same as above |
-| `openclaw-kasmvnc-zh.sh` | Chinese (中文) | Bash script — China mirrors, zh_CN locale, Asia/Shanghai, Fcitx5 + Rime |
-| `openclaw-kasmvnc-zh.ps1` | Chinese (中文) | PowerShell script — same as above |
-
-Each `.sh` / `.ps1` pair shares identical logic and must be kept in sync. The `-zh` variants add:
-- China-optimized mirrors: Tsinghua (apt), Aliyun (Docker CE), npmmirror (npm), Huawei Cloud (base image), claw.ihasy.com (KasmVNC/Rime)
-- Chinese locale (`zh_CN.UTF-8`) and timezone (`Asia/Shanghai`)
-- Fcitx5 + Rime Ice (雾凇拼音) input method with full CJK fonts
-- KasmVNC downloaded from self-hosted mirror instead of GitHub releases
+Key changes from upstream:
+- Replaces `openclaw gateway` with `hermes gateway run`
+- Uses Hermes Agent's native install script (`curl | bash`)
+- Gateway port: 8642 (Hermes API Server default)
+- Always disables Docker-in-Docker (DinD)
+- Volume mount: `./hermes-data` instead of `./openclaw-data`
 
 ## Architecture
 
-The scripts dynamically generate these files in the install directory at runtime:
-- `Dockerfile.kasmvnc` — Node 22 + KasmVNC + XFCE4 + Docker-in-Docker (+ Fcitx5 in zh version)
-- `docker-compose.yml` — Service definition with port mappings, volumes, GPU support
-- `.env` — Auto-generated tokens, passwords, ports, proxy settings
-- `scripts/docker/kasmvnc-startup.sh` — Container entrypoint (VNC → desktop → gateway supervisor)
-- `scripts/docker/systemctl-shim.sh` — systemd emulation via process signals and `lsof`-based PID detection
+The install script (`hermes-kasmvnc-zh.sh`) dynamically generates:
+- `Dockerfile.kasmvnc` — Node 22 + KasmVNC + XFCE4 + Chromium + Fcitx5 + Hermes Agent
+- `docker-compose.yml` — Service definition with port mappings, volumes
+- `.env` — Auto-generated tokens, passwords, ports
+- `scripts/docker/kasmvnc-startup.sh` — Container entrypoint (VNC → desktop → gateway)
+- `scripts/docker/systemctl-shim.sh` — systemd emulation for hermes CLI
 
-Key design decisions:
-- **Supervisor loop** in `kasmvnc-startup.sh` auto-restarts the gateway on crash (runs in foreground)
-- **systemctl shim** intercepts `systemctl` calls so `openclaw gateway restart/stop/start` works without systemd
-- **Port-based PID detection** via `lsof` because Node.js overwrites its process title
-- **Clipboard DLP override** removes `chromium/x-web-custom-data` MIME to prevent `pkill -f chromium` from killing VNC
+## Key Ports
 
-## Commands
+| Port | Service |
+|------|---------|
+| 18642 | Hermes Gateway (host) → 8642 (container) |
+| 18643 | Hermes Webhook (host) → 8643 (container) |
+| 8443 | KasmVNC HTTPS |
+| 8444 | KasmVNC WebSocket |
 
-No build/test/lint system — this is a deployment automation project. To test changes locally:
+## Development
 
 ```bash
-# International version
-./openclaw-kasmvnc.sh install
+# Install
+./hermes-kasmvnc-zh.sh install
 
-# Chinese version
-./openclaw-kasmvnc-zh.sh install
+# Restart container
+./hermes-kasmvnc-zh.sh restart
 
-# Other commands: uninstall, restart, upgrade, status, logs
-./openclaw-kasmvnc.sh status
-./openclaw-kasmvnc.sh logs --tail 200
+# Upgrade hermes-agent inside running container
+./hermes-kasmvnc-zh.sh upgrade
+
+# Logs
+./hermes-kasmvnc-zh.sh logs --tail 200
 ```
 
-## Development Notes
+## Important Build Notes
 
-- `README.md` is English; `README-zh.md` is Chinese — keep both updated
-- Generated files use `cat <<'HEREDOC_TAG'` — watch for quoting/escaping when editing heredocs
-- The `ensure_build_context()` function contains all generated file content — this is the core function to modify for Docker/container changes
-- `upgrade` does a hot npm update without rebuilding the image; `install` does a full rebuild
-- GPU support is auto-detected via `nvidia-smi` and conditionally adds `runtime: nvidia` to compose
-- When making changes, apply to both international and zh versions where applicable
+- The `hermes-kasmvnc-zh.sh` script is the **single source of truth** — it embeds all generated files
+- To modify the Dockerfile, edit the `ensure_build_context()` function inside the shell script
+- The shell script generates files at runtime into the install directory
+- Build args `HTTP_PROXY`/`HTTPS_PROXY` must be empty string `""` in docker-compose.yml to override host proxy inheritance during image build

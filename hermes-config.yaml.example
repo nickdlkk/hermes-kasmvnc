@@ -1,0 +1,23 @@
+# Hermes Agent 配置示例
+# 复制到 ~/.hermes/config.yaml 并填入你的 API keys
+
+# Gateway 配置
+gateway:
+  controlUi:
+    allowedOrigins:
+      - "*"
+    dangerouslyAllowHostHeaderOriginFallback: true
+    dangerouslyDisableDeviceAuth: false
+
+# Agent 默认模型
+agents:
+  defaults:
+    model:
+      primary: "anthropic/claude-sonnet-4-7-2025-06-04"
+    maxConcurrent: 4
+    subagents:
+      maxConcurrent: 8
+
+# 在 KasmVNC 桌面环境中使用，需要设置 display
+display:
+  desktop: "xfce4"
