@@ -949,12 +949,13 @@ assert_gateway_running() {
     echo "hermes-kasmvnc is not running (container: $cid)." >&2
     exit 1
   fi
-  # Also verify the gateway process inside the container is alive（最多等待 600 秒）
+  # Verify the gateway process inside the container is alive by checking the port（最多等待 600 秒）
   # 首次安装在慢磁盘上可能需要 5-10 分钟
   echo "等待 gateway 就绪（首次安装最长需要 10 分钟）..." >&2
   local retries=0
   while [ $retries -lt 300 ]; do
-    if docker exec "$cid" sh -c 'systemctl is-active hermes-kasmvnc' >/dev/null 2>&1; then
+    # Use lsof inside container to check if port 8642 is listening
+    if docker exec "$cid" sh -c 'lsof -i :8642 -sTCP:LISTEN -t' 2>/dev/null | grep -q .; then
       return 0
     fi
     if [ $retries -gt 0 ] && [ $((retries % 30)) -eq 0 ]; then
@@ -969,7 +970,7 @@ assert_gateway_running() {
   docker exec "$cid" sh -c 'tail -n 60 /tmp/hermes-gateway.log 2>/dev/null' >&2 || true
   echo "" >&2
   echo "Gateway 在 10 分钟内未就绪。请稍后手动检查状态：" >&2
-  echo "  docker exec $cid systemctl is-active hermes-kasmvnc" >&2
+  echo "  docker exec $cid lsof -i :8642 -sTCP:LISTEN -t" >&2
   echo "  curl http://127.0.0.1:8642/" >&2
   echo "Container is running but gateway process is not responding (container: $cid)." >&2
   exit 1
