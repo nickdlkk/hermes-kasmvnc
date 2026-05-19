@@ -1,40 +1,43 @@
-# openclaw-kasmvnc
+# hermes-kasmvnc
 
-One-click deployment for OpenClaw + KasmVNC (Windows / macOS / Linux).
+One-click deployment for Hermes Agent + KasmVNC (Windows / macOS / Linux).
 
 > 🇨🇳 中文版 / Chinese version: [README-zh.md](README-zh.md)
 
-![OpenClaw Desktop Environment](docs/screenshot-desktop.jpg)
-
 ## Key Advantages
+
+### 🔗 Hermes Gateway with HTTP API
+
+Built-in HTTP API server (`0.0.0.0:8642`) with Bearer token authentication, plus a Web Dashboard (`0.0.0.0:9119`) for monitoring.
 
 ### 🔧 Full Lifecycle Management Inside Container
 
-**Solves the core limitation of official OpenClaw Docker deployment:**
+**Solves the core limitation of official Hermes Docker deployment:**
 
-In the official OpenClaw Docker setup, the Gateway runs on the host machine, and containers lack systemd, causing:
-- ❌ Cannot run `openclaw gateway restart` inside container
-- ❌ Cannot run `npm install -g openclaw@latest` for hot updates inside container
+- ❌ Cannot run `hermes gateway restart` inside container (no systemd)
 - ❌ Must manually restart container after config changes
 
-**This project solves it with systemctl shim:**
-- ✅ Supports `openclaw gateway restart` inside container
+**This project solves it with systemctl shim + supervisor loop:**
+- ✅ Supports `hermes gateway restart` inside container
 - ✅ Supports `upgrade` command for hot updates (no image rebuild needed)
+- ✅ Gateway auto-restarts on crash (VNC session stays connected)
 - ✅ Complete `install / upgrade / restart / uninstall` lifecycle management
 
 ### 👁️ Visual Desktop Environment
 
-**Solves the visibility problem of cloud vendor one-click deployments:**
+**Solves the visibility problem of cloud vendor deployments:**
 
-Cloud vendor OpenClaw deployments typically only provide CLI, making it impossible to:
-- ❌ Watch OpenClaw operate the browser in real-time
-- ❌ Observe Agent task execution with visual feedback
-- ❌ Debug desktop application issues
+- ❌ Cannot watch the agent operate the browser in real-time
+- ❌ Cannot observe task execution with visual feedback
 
 **This project provides a complete desktop environment:**
-- ✅ Browser-based XFCE desktop (KasmVNC)
-- ✅ Watch OpenClaw operate Chromium in real-time
+- ✅ Browser-based XFCE desktop (KasmVNC) — no client install needed
+- ✅ Watch the agent operate Chromium in real-time
 - ✅ Full Linux desktop experience
+
+### 🐳 Docker-in-Docker Support
+
+Built-in dockerd lets Hermes Agent create and manage child containers directly inside the container — no extra configuration needed.
 
 ## Quick Start
 
@@ -42,50 +45,52 @@ Cloud vendor OpenClaw deployments typically only provide CLI, making it impossib
 
 ```bash
 docker run -d \
-  --name openclaw-kasmvnc \
+  --name hermes-kasmvnc \
   --privileged \
   --shm-size=2g \
-  -p 18789:18789 \
+  -p 18642:8642 \
+  -p 18643:8643 \
+  -p 8919:9119 \
   -p 8443:8444 \
-  -e OPENCLAW_GATEWAY_TOKEN=your-token-here \
-  -e OPENCLAW_KASMVNC_PASSWORD=your-password-here \
-  -v ~/openclaw-data:/home/node \
-  ddong8/openclaw-kasmvnc:latest-intl
+  -v $(pwd)/hermes-data:/home/node \
+  -e API_SERVER_KEY=$(openssl rand -hex 32) \
+  -e API_SERVER_HOST=0.0.0.0 \
+  -e GATEWAY_ALLOW_ALL_USERS=true \
+  hermes:kasmvnc
 ```
 
-**Data Persistence:** Mounting `~/openclaw-data:/home/node` persists all user data including OpenClaw configs, VS Code settings, Git credentials, and desktop files.
+**Data Persistence:** Mounting `hermes-data:/home/node` persists all user data including Hermes configs, skills, desktop files, Git credentials, and VNC sessions.
 
 > 📖 Full documentation: [DOCKER-en.md](DOCKER-en.md)
 
 ### Option 2: One-Click Script
 
-Windows:
-```powershell
-irm https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc.ps1 | iex
+**Linux / macOS:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/nickdlkk/hermes-kasmvnc/hermes-kasmvnc/openclaw-kasmvnc-zh.sh | bash -s -- install
 ```
 
-macOS / Linux:
-```bash
-curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/openclaw-kasmvnc.sh | bash -s -- install
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/nickdlkk/hermes-kasmvnc/hermes-kasmvnc/openclaw-kasmvnc-zh.ps1 | iex
 ```
 
 ### Access Services
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| WebChat | `http://127.0.0.1:18789/chat?session=main` | `OPENCLAW_GATEWAY_TOKEN` |
-| KasmVNC Desktop | `https://127.0.0.1:8443` | User `node`, password `OPENCLAW_KASMVNC_PASSWORD` |
+| KasmVNC Desktop | `https://127.0.0.1:8443` | User `node`, password `hermesvnc` |
+| Hermes Gateway API | `http://127.0.0.1:18642` | Bearer token (auto-generated) |
+| Hermes Dashboard | `http://127.0.0.1:8919` | None |
 
-> Token and password are auto-generated on first install. Save them somewhere safe.
+## Features
 
-## Other Features
-
-- **Environment isolation** -- OpenClaw, desktop, and all dependencies live inside the container
-- **One-click deploy** -- install, upgrade, and restart via a single script + Compose
-- **Cross-platform** -- identical container behavior on Windows, macOS, and Linux
-- **Docker-in-Docker** -- built-in dockerd lets OpenClaw create and manage child containers
-- **GPU auto-detect** -- automatically enables `nvidia` runtime when a host GPU is present
-- **Mass deployment** -- standardized container approach enables large-scale lobster deployments
+- **Environment isolation** — Hermes Agent, desktop, and all dependencies live inside the container
+- **One-click deploy** — install, upgrade, and restart via a single script + Compose
+- **Cross-platform** — identical container behavior on Windows, macOS, and Linux
+- **Docker-in-Docker** — built-in dockerd lets Hermes create and manage child containers
+- **GPU auto-detect** — automatically enables `nvidia` runtime when a host GPU is present
+- **Hermes Dashboard** — Web UI for monitoring gateway status
 
 ## Prerequisites
 
@@ -96,44 +101,44 @@ curl -fsSL https://raw.githubusercontent.com/ddong8/openclaw-kasmvnc/main/opencl
 ## Common Commands
 
 <details>
-<summary><b>Windows (PowerShell)</b></summary>
+<summary><b>Linux / macOS (Bash)</b></summary>
 
-```powershell
-# Install
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install
+```bash
+chmod +x ./hermes-kasmvnc-zh.sh
 
-# Uninstall (stop services only)
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command uninstall
-
-# Uninstall and remove install directory
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command uninstall -Purge
-
-# Restart
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command restart
-
-# Upgrade
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command upgrade
-
-# Status / Logs
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command status
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command logs -Tail 200
+./hermes-kasmvnc-zh.sh install              # Install
+./hermes-kasmvnc-zh.sh uninstall            # Uninstall (stop services only)
+./hermes-kasmvnc-zh.sh uninstall --purge    # Uninstall and remove install directory
+./hermes-kasmvnc-zh.sh restart              # Restart
+./hermes-kasmvnc-zh.sh upgrade              # Upgrade (hot reload, no rebuild)
+./hermes-kasmvnc-zh.sh status               # Status
+./hermes-kasmvnc-zh.sh logs --tail 200      # Logs
 ```
 
 </details>
 
 <details>
-<summary><b>macOS / Linux (Bash)</b></summary>
+<summary><b>Windows (PowerShell)</b></summary>
 
-```bash
-chmod +x ./openclaw-kasmvnc.sh
+```powershell
+# Install
+powershell -ExecutionPolicy Bypass -File .\hermes-kasmvnc-zh.ps1 -Command install
 
-./openclaw-kasmvnc.sh install              # Install
-./openclaw-kasmvnc.sh uninstall            # Uninstall (stop services only)
-./openclaw-kasmvnc.sh uninstall --purge    # Uninstall and remove install directory
-./openclaw-kasmvnc.sh restart              # Restart
-./openclaw-kasmvnc.sh upgrade              # Upgrade
-./openclaw-kasmvnc.sh status               # Status
-./openclaw-kasmvnc.sh logs --tail 200      # Logs
+# Uninstall (stop services only)
+powershell -ExecutionPolicy Bypass -File .\hermes-kasmvnc-zh.ps1 -Command uninstall
+
+# Uninstall and remove install directory
+powershell -ExecutionPolicy Bypass -File .\hermes-kasmvnc-zh.ps1 -Command uninstall -Purge
+
+# Restart
+powershell -ExecutionPolicy Bypass -File .\hermes-kasmvnc-zh.ps1 -Command restart
+
+# Upgrade
+powershell -ExecutionPolicy Bypass -File .\hermes-kasmvnc-zh.ps1 -Command upgrade
+
+# Status / Logs
+powershell -ExecutionPolicy Bypass -File .\hermes-kasmvnc-zh.ps1 -Command status
+powershell -ExecutionPolicy Bypass -File .\hermes-kasmvnc-zh.ps1 -Command logs -Tail 200
 ```
 
 </details>
@@ -142,57 +147,38 @@ chmod +x ./openclaw-kasmvnc.sh
 
 | Parameter | Windows (PS1) | macOS/Linux (sh) | Default |
 |-----------|---------------|-------------------|---------|
-| Install directory | `-InstallDir` | `--install-dir` | `$HOME/openclaw-kasmvnc` |
-| Gateway port | `-GatewayPort` | `--gateway-port` | `18789` |
+| Install directory | `-InstallDir` | `--install-dir` | `$HOME/hermes-kasmvnc` |
+| Gateway port | `-GatewayPort` | `--gateway-port` | `18642` |
 | VNC HTTPS port | `-HttpsPort` | `--https-port` | `8443` |
 | Gateway token | `-GatewayToken` | `--gateway-token` | Auto-generated |
-| VNC password | `-KasmPassword` | `--kasm-password` | Auto-generated |
+| VNC password | `-KasmPassword` | `--kasm-password` | `hermesvnc` |
 | HTTP proxy | `-Proxy` | `--proxy` | None |
-| Disable Docker-in-Docker | `-NoDinD` | `--no-dind` | No |
+| Disable Docker-in-Docker | `-NoDinD` | `--no-dind` | DinD **enabled** |
 | Disable Docker build cache | `-NoCache` | `--no-cache` | No |
 | Log lines | `-Tail` | `--tail` | `200` |
 | Purge install dir | `-Purge` | `--purge` | No |
 
-> The script fetches the `latest` OpenClaw version via npm. Run `upgrade` to update.
-
 <details>
 <summary>Custom install examples</summary>
 
-```powershell
-# Windows
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 `
-  -Command install `
-  -InstallDir "D:\openclaw-deploy" `
-  -GatewayPort "18789" `
-  -HttpsPort "8443"
-```
-
-```bash
-# macOS/Linux
-./openclaw-kasmvnc.sh install \
-  --install-dir "$HOME/openclaw-deploy" \
-  --gateway-port 18789 \
-  --https-port 8443
-```
-
-</details>
-
-<details>
-<summary>Using a proxy</summary>
-
-Pass `--proxy` at install time to route all container HTTP/HTTPS traffic through a proxy:
-
 ```bash
 # Linux/macOS
-./openclaw-kasmvnc.sh install --proxy http://192.168.1.131:10808
+./hermes-kasmvnc-zh.sh install \
+  --install-dir "$HOME/hermes-deploy" \
+  --gateway-port 18642 \
+  --https-port 8443
 
-# Windows
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install -Proxy "http://192.168.1.131:10808"
+# With proxy
+./hermes-kasmvnc-zh.sh install --proxy http://192.168.1.131:10808
 ```
 
-You can also edit `.env` after install and `restart` to apply:
-```env
-OPENCLAW_HTTP_PROXY=http://192.168.1.131:10808
+```powershell
+# Windows
+powershell -ExecutionPolicy Bypass -File .\hermes-kasmvnc-zh.ps1 `
+  -Command install `
+  -InstallDir "D:\hermes-deploy" `
+  -GatewayPort "18642" `
+  -HttpsPort "8443"
 ```
 
 </details>
@@ -200,81 +186,59 @@ OPENCLAW_HTTP_PROXY=http://192.168.1.131:10808
 <details>
 <summary>Disable Docker-in-Docker (more secure)</summary>
 
-By default, the container installs Docker CE and runs in privileged mode to support Docker-in-Docker. If you don't need OpenClaw to manage child containers, you can disable DinD for better security:
+By default, the container runs with `--privileged` and installs Docker CE to support Docker-in-Docker. If you don't need Hermes to manage child containers, disable DinD for better security:
 
 ```bash
 # Linux/macOS
-./openclaw-kasmvnc.sh install --no-dind
+./hermes-kasmvnc-zh.sh install --no-dind
 
 # Windows
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install -NoDinD
+powershell -ExecutionPolicy Bypass -File .\hermes-kasmvnc-zh.ps1 -Command install -NoDinD
 ```
 
 When `--no-dind` is enabled:
 - Docker CE is not installed in the container
-- Container runs without `privileged: true` (more secure)
+- Container runs without `privileged: true`
 - The generated `docker-compose.yml` adds `security_opt: [seccomp:unconfined]` automatically — required on Docker < 23.0 so XFCE/GLib's `close_range` syscall works (otherwise the desktop renders as a black screen). Docker 23.0+ allows it by default.
-- OpenClaw cannot create or manage child containers
-
-</details>
-
-<details>
-<summary>KasmVNC version selection</summary>
-
-Default is KasmVNC **1.3.0**. Override via environment variable:
-
-```bash
-# Linux/macOS
-OPENCLAW_KASMVNC_VERSION=1.4.0 ./openclaw-kasmvnc.sh install
-
-# Windows
-$env:OPENCLAW_KASMVNC_VERSION="1.4.0"
-powershell -ExecutionPolicy Bypass -File .\openclaw-kasmvnc.ps1 -Command install
-```
+- Hermes cannot create or manage child containers
 
 </details>
 
 ## Project Structure
 
-- `openclaw-kasmvnc.sh` -- macOS/Linux script (international)
-- `openclaw-kasmvnc.ps1` -- Windows script (international)
-- `openclaw-kasmvnc-zh.sh` -- macOS/Linux script (Chinese, with China-optimized mirrors)
-- `openclaw-kasmvnc-zh.ps1` -- Windows script (Chinese, with China-optimized mirrors)
-
 After running, the install directory contains:
 ```
 <install-dir>/
-├── .env                              # Environment config (token, password, ports)
-├── .openclaw/                        # OpenClaw persistent config and workspace
+├── .env                              # Environment config (token, password, ports, API keys)
+├── hermes-data/                      # Persisted user data (hermes configs, desktop, etc.)
 ├── docker-compose.yml                # Compose service definition
-├── Dockerfile.kasmvnc                # Image build (node:22 + KasmVNC + XFCE)
+├── Dockerfile.kasmvnc                # Image build (node:22 + KasmVNC + XFCE + hermes-agent)
 └── scripts/docker/
     ├── kasmvnc-startup.sh            # Container entrypoint (VNC → desktop → gateway)
-    └── systemctl-shim.sh             # systemctl shim (translates systemd calls to signals)
+    └── systemctl-shim.sh              # systemctl shim (translates systemd calls to signals)
 ```
 
 ## Built-in Features
 
-- **UTC timezone, en_US locale** -- `TZ=UTC`, `LANG=en_US.UTF-8`, Noto fonts pre-installed
-- **Gateway auto-restart** -- supervisor loop restarts the gateway on crash; VNC session stays connected
-- **X11 cleanup** -- entrypoint clears stale X11 lock files and VNC processes to prevent black screens
-- **systemctl shim** -- no systemd in the container; the shim makes `openclaw gateway restart/stop/start` work
-- **Clipboard safety** -- removes the default `chromium/x-web-custom-data` MIME type so `pkill -f chromium` won't kill VNC
+- **UTF-8, zh_CN locale** — `TZ=Asia/Shanghai`, `LANG=zh_CN.UTF-8`, Noto CJK fonts pre-installed
+- **Fcitx5 + Rime** — Chinese input method (雾凇拼音) auto-configured
+- **Gateway auto-restart** — supervisor loop restarts the gateway on crash; VNC session stays connected
+- **X11 cleanup** — entrypoint clears stale X11 lock files and VNC processes to prevent black screens
+- **systemctl shim** — no systemd in the container; the shim makes `hermes gateway restart/stop/start` work
+- **API Server** — HTTP API on `0.0.0.0:8642` with Bearer token auth
 
-<details>
-<summary>Managing the gateway inside the container</summary>
+## Managing the Gateway Inside the Container
 
-Open a terminal in the VNC desktop and use standard OpenClaw commands:
+Open a terminal in the VNC desktop and use standard Hermes commands:
 
 ```bash
-openclaw gateway restart          # Restart (reload latest code)
-openclaw gateway stop             # Stop
-openclaw gateway status --probe   # Check status
+hermes gateway restart          # Restart (reload latest code)
+hermes gateway stop             # Stop
+hermes gateway status --probe   # Check status
+hermes dashboard --port 9119   # Start dashboard manually
 ```
 
-> These commands work via the built-in systemctl shim -- no real systemd required.
-
-</details>
+> These commands work via the built-in systemctl shim — no real systemd required.
 
 ## Pre-installed Tools
 
@@ -285,14 +249,14 @@ The desktop environment comes with these development tools pre-installed:
 - **vim** - Terminal text editor
 - **Git** - Version control system
 - **Node.js 22** - JavaScript runtime
-- **npm** - Package manager
+- **npm** - Package manager (npmmirror configured for China)
 - **Docker CE** - Container engine (DinD variants only)
 
 Desktop icons are located in `/home/node/Desktop` and can be launched with a double-click.
 
 ## Configuration Changes
 
-Config files: `<install-dir>/.env`, `<install-dir>/.openclaw/openclaw.json`
+Config files: `<install-dir>/.env`, `<install-dir>/hermes-data/.hermes/config.yaml`
 
 1. Edit the config file
 2. Run `restart`
@@ -302,29 +266,33 @@ Config files: `<install-dir>/.env`, `<install-dir>/.openclaw/openclaw.json`
 
 ## Known Issues
 
-### VNC flicker during `openclaw update`
+### Port mapping broken in DinD mode (Gateway API not reachable from host)
 
-`npm install` causes high CPU/IO, which may trigger KasmVNC WebSocket heartbeat timeouts. This is temporary resource contention -- the session recovers automatically. Run `upgrade` when the host has spare resources.
+If `curl localhost:18642` returns connection refused/reset, this is caused by dockerd clearing iptables NAT rules on startup. The startup script includes a fix (save/restore NAT rules). Rebuild the image to apply the fix, or ensure you are using an image built after the fix was added.
+
+### VNC flicker during `upgrade`
+
+`npm install` causes high CPU/IO, which may trigger KasmVNC WebSocket heartbeat timeouts. This is temporary — the session recovers automatically. Run `upgrade` when the host has spare resources.
 
 ## FAQ
 
 ### 1. Build fails with package installation errors?
 
-If you encounter errors during the Docker build process (e.g., `apt-get` failures), try rebuilding without cache:
+If you encounter errors during the Docker build process, try rebuilding without cache:
 
 ```bash
-# Windows
-.\openclaw-kasmvnc.ps1 install -NoCache
+# Linux/macOS
+./hermes-kasmvnc-zh.sh install --no-cache
 
-# macOS/Linux
-./openclaw-kasmvnc.sh install --no-cache
+# Windows
+.\hermes-kasmvnc-zh.ps1 install -NoCache
 ```
 
 This forces Docker to re-download all packages and can resolve transient network or repository issues.
 
 ### 2. Port conflict
 
-Change ports at install time: Windows `-GatewayPort 28789 -HttpsPort 9443`, macOS/Linux `--gateway-port 28789 --https-port 9443`, then re-run `install`.
+Change ports at install time: `--gateway-port 28642 --https-port 9443`, then re-run `install`.
 
 ### 3. HTTPS certificate warning
 
@@ -344,17 +312,9 @@ This warning may appear on Apple Silicon Macs for certain mount paths. If the co
 
 ### 7. Why Chromium instead of Chrome?
 
-1. **Multi-arch** -- Google does not ship ARM64 Chrome; Chromium supports both x86_64 and arm64
-2. **License** -- Chrome includes proprietary components (DRM, etc.) unsuitable for public images
-3. **Clean dependencies** -- `apt install chromium` integrates cleanly with system libraries
-
-### 8. Too many logs
-
-Use `logs --tail 200` for recent output, `logs --tail 50` to quickly spot errors.
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=ddong8/openclaw-kasmvnc&type=Date)](https://star-history.com/#ddong8/openclaw-kasmvnc&Date)
+1. **Multi-arch** — Google does not ship ARM64 Chrome; Chromium supports both x86_64 and arm64
+2. **License** — Chrome includes proprietary components (DRM, etc.) unsuitable for public images
+3. **Clean dependencies** — `apt install chromium` integrates cleanly with system libraries
 
 ## License
 

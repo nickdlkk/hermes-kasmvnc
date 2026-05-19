@@ -37,11 +37,22 @@ chmod 700 "${HOME}/.vnc" "${XDG_RUNTIME_DIR}" "${HOME}/.hermes" 2>/dev/null || t
 
 # 后台启动 Docker 守护进程（DinD 支持），等待 socket 就绪（仅在未禁用 DinD 时）
 if [ "${NO_DIND:-0}" != "1" ] && command -v dockerd >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+  # 保存宿主机 iptables NAT 规则（Dockerd 启动后会清空它们）
+  _nat_rules=$(sudo iptables-save -t nat 2>/dev/null || true)
+
   (sudo nohup dockerd >/tmp/hermes-dockerd.log 2>&1 &) || true
+
+  # 等待 Docker socket 就绪
   for i in $(seq 1 30); do
     [ -S /var/run/docker.sock ] && break
     sleep 1
   done
+
+  # Dockerd 启动后会清空 iptables NAT 表，破坏宿主机到容器的端口转发
+  # 恢复 NAT 规则以修复 宿主机→容器 端口映射（如 18642→8642）
+  if [ -n "$_nat_rules" ]; then
+    echo "$_nat_rules" | sudo iptables-restore -t nat 2>/dev/null || true
+  fi
 fi
 
 # 清理可能残留的 hermes 别名（历史版本遗留）
