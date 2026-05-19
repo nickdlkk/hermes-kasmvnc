@@ -1,13 +1,7 @@
-# macOS
-.DS_Store
+# Build artifacts
+Dockerfile.kasmvnc
+docker-compose.yml
+.env
 
-# Editors
-.idea/
-.vscode/
-
-# Temp
-*.tmp
-*.bak
-
-# Claude
-CLAUDE.md
+# Generated data volumes
+hermes-data/
