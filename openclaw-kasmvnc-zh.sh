@@ -286,9 +286,7 @@ RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
  && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
  && git config --global url."https://".insteadOf "git://" \
  && (npm config set registry https://registry.npmmirror.com \
-     # hermes-agent installed via curl below \
-     || (npm config set registry https://registry.npmjs.org \
-         # hermes-agent installed via curl below)) \
+    || npm config set registry https://registry.npmjs.org) \
  && chown -R node:node /usr/local/lib/node_modules /usr/local/bin
 
 # 配置时区和语言环境（可通过构建参数覆盖）
